@@ -93,16 +93,56 @@ Config 的整个 namespace 会从 `settings.describe()` 消失（表现为"等�
   refresh_token 轮换除外，这与 App 自身行为一致）。
 - God Agent App 未登录时插件无法工作（无凭据可复用）。
 
-## 本地开发 / 安装
+## 从本仓库安装（DSH 内安装方法）
 
-本仓库以 `link:` 依赖挂进 DSH profile（源码改动即时生效，无需重新拷贝）：
+### 方法一：git 依赖（推荐，一键拉取）
 
+在 profile 目录（`$DSH_HOME/profiles/web`，可用 `dsh web` 启动参数
+`--profile <name>` 指定其它 profile）执行：
+
+```bash
+cd $DSH_HOME/profiles/web
+
+# 1. 把仓库装成 git 依赖
+dsh plugin --profile web add "git+https://github.com/atorber/dsh-connect-godagent.git"
+# （不用 dsh CLI 的话等价于：pnpm add "git+https://github.com/atorber/dsh-connect-godagent.git"）
+
+# 2. profile/package.json 的 dsh.profile.bundles 数组追加 "dsh-connect-godagent"
+# 3. profile/cordis.patch.yml 追加两行：
+#    - id: dsh-connect-godagent
+#      name: dsh-connect-godagent
+# 4. 重启 DSH
 ```
+
+> **务必写全 `git+https://` 前缀**。写成 `github:atorber/dsh-connect-godagent`
+> 短格式时 pnpm 会解析成 `git+ssh://git@github.com/...`，未配置 SSH key 的机器
+> 会报 `Permission denied (publickey)`。
+
+安装即生效，无需 pnpm approve-builds：本包没有任何 build 脚本，依赖全部由
+DSH 宿主提供（profile 树内的插件在加载时由 DSH Loader 把裸导入重路由到宿主
+DSH 自带副本，见下文「依赖策略」）。
+
+### 方法二：clone + link:（本地开发推荐，源码改动即时生效）
+
+```bash
+git clone https://github.com/atorber/dsh-connect-godagent.git /path/to/dsh-connect-godagent
+
 # profile: $DSH_HOME/profiles/web/package.json
 "dsh-connect-godagent": "link:/path/to/dsh-connect-godagent"
 # dsh.profile.bundles 追加 "dsh-connect-godagent"
 # cordis.patch.yml 追加 `- id: dsh-connect-godagent / name: dsh-connect-godagent`
+# 重启 DSH
 ```
+
+link: 模式下依赖经 symlink 解析（目录里有 node_modules 时），源码改动无需重新
+拷贝，重启 DSH 即生效；方法一为纯快照安装，更新需重新 `pnpm add` 拉取。
+
+两种方法安装后，GUI「设置 → God Agent」应出现本插件的配置卡片
+（启用开关 / 分组复选 / 模型白名单等）。
+
+## 本地开发 / 安装
+
+（开发期调试也可直接把仓库以 `link:` 依赖挂进 DSH profile，方法同上。）
 
 - **依赖策略：零自带副本**。`package.json` 不声明任何 DSH 公共包
   （`@deepseek-ai/dsh-llm`、`@deepseek-ai/cordis`、`@earendil-works/pi-ai` 等）为
