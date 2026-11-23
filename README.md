@@ -103,9 +103,10 @@ Config 的整个 namespace 会从 `settings.describe()` 消失（表现为"等�
 patch 挂载条目，幂等可重复执行）：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/atorber/dsh-connect-godagent/main/install.sh | bash
-# raw.githubusercontent 不可达时（网络受限）：
+# 国内网络优先（raw.githubusercontent.com 常被阻断，gcore CDN 实测可用）：
 curl -fsSL https://gcore.jsdelivr.net/gh/atorber/dsh-connect-godagent@main/install.sh | bash
+# 或 GitHub 源：
+curl -fsSL https://raw.githubusercontent.com/atorber/dsh-connect-godagent/main/install.sh | bash
 ```
 
 - 默认装到 `web` profile；其它 profile 在后面加参数：`… | bash -s -- <profile名>`
@@ -140,7 +141,7 @@ dsh plugin --profile web add "git+https://github.com/atorber/dsh-connect-godagen
 DSH 宿主提供（profile 树内的插件在加载时由 DSH Loader 把裸导入重路由到宿主
 DSH 自带副本，见下文「依赖策略」）。
 
-* **方法二：clone + link:**（本地开发推荐，源码改动即时生效）
+### 方法二：clone + link:（本地开发推荐，源码改动即时生效）
 
 
 ```bash
