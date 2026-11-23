@@ -93,9 +93,27 @@ Config 的整个 namespace 会从 `settings.describe()` 消失（表现为"等�
   refresh_token 轮换除外，这与 App 自身行为一致）。
 - God Agent App 未登录时插件无法工作（无凭据可复用）。
 
-## 从本仓库安装（DSH 内安装方法）
+## 在 DSH 中安装（一句话）
 
-### 方法一：git 依赖（推荐，一键拉取）
+对 DSH 助手说这一句即可：
+
+> 安装 dsh-connect-godagent 插件，仓库地址 https://github.com/atorber/dsh-connect-godagent
+
+助手只需要执行**一条命令**（脚本自动完成：git 依赖安装 + bundles 注册 +
+patch 挂载条目，幂等可重复执行）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/atorber/dsh-connect-godagent/main/install.sh | bash
+# raw.githubusercontent 不可达时（网络受限）：
+curl -fsSL https://gcore.jsdelivr.net/gh/atorber/dsh-connect-godagent@main/install.sh | bash
+```
+
+- 默认装到 `web` profile；其它 profile 在后面加参数：`… | bash -s -- <profile名>`
+- 完成后**重启 DSH**（`dsh web`）生效；GUI「设置 → God Agent」出现配置卡片
+
+### 从本仓库安装（手动方式）
+
+**方法一：git 依赖**
 
 在 profile 目录（`$DSH_HOME/profiles/web`，可用 `dsh web` 启动参数
 `--profile <name>` 指定其它 profile）执行：
@@ -122,7 +140,8 @@ dsh plugin --profile web add "git+https://github.com/atorber/dsh-connect-godagen
 DSH 宿主提供（profile 树内的插件在加载时由 DSH Loader 把裸导入重路由到宿主
 DSH 自带副本，见下文「依赖策略」）。
 
-### 方法二：clone + link:（本地开发推荐，源码改动即时生效）
+* **方法二：clone + link:**（本地开发推荐，源码改动即时生效）
+
 
 ```bash
 git clone https://github.com/atorber/dsh-connect-godagent.git /path/to/dsh-connect-godagent
