@@ -1,0 +1,44 @@
+name: Publish to npm
+
+# 打 v* 标签或手动触发：校验 tag 与 package.json 版本一致 → 跑单测 → 发布 npm。
+# 前置一次性配置：仓库 Settings → Secrets and variables → Actions 添加 NPM_TOKEN
+# （npmjs.com → Access Tokens → Generate New Token，选 publish 权限），或：
+#   gh secret set NPM_TOKEN -R atorber/dsh-connect-godagent
+# --provenance 需要 id-token: write，发布后包页面会显示 "Published via GitHub Actions" 徽标。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # npm provenance（OIDC）
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Tag 与 package.json 版本一致
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG=${GITHUB_REF_NAME#v}
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "tag v$TAG != package.json $VERSION"; exit 1
+          fi
+
+      - name: 单测
+        run: node test-client.mjs
+
+      - name: 发布
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
