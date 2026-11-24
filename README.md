@@ -95,7 +95,13 @@ Config 的整个 namespace 会从 `settings.describe()` 消失（表现为"等�
 
 ## 在 DSH 中安装（一句话）
 
-对 DSH 助手说这一句即可：
+**npm 包（推荐）**——预构建产物，一条命令、无需 allowBuilds 授权：
+
+```bash
+dsh plugin --profile web add dsh-connect-godagent
+```
+
+也可以对 DSH 助手说这一句，让它代劳：
 
 > 安装 dsh-connect-godagent 插件，仓库地址 https://github.com/atorber/dsh-connect-godagent
 
