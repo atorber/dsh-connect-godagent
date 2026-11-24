@@ -138,5 +138,57 @@ ok(sawTextarea, '模型白名单 textarea');
 console.log('== fetchGroups 失败容错 ==');
 // （组件已容忍 groups=[] + groupError，见渲染分支）
 
+
+console.log('== healDescribe（同值写回自愈） ==');
+// mock remote：describe 返回带 revision 的行；mutate 记录调用
+const remoteCalls = { describe: 0, mutate: [] };
+const remoteSettings = {
+  describe: async () => { remoteCalls.describe++; return ({ namespaces: [{ ns: 'dsh-connect-godagent', value: { enabled: true, refreshMinutes: 45 }, revision: 7 }] }); },
+  mutate: async (ns, ops, revision) => { remoteCalls.mutate.push([ns, ops, revision]); return { ok: true }; },
+};
+const beforeLen = slotRegistrations.length;
+ctx.remote = { settings: remoteSettings };
+clientExports.apply(ctx);
+const section2 = slotRegistrations.slice(beforeLen).find((r) => r.spec.name === 'settings.section');
+ok(!!section2, '带 remote 的 apply 仍注册设置节');
+ok(clientExports.inject.includes('remote') && clientExports.inject.includes('remote.settings'), 'inject 含 remote/remote.settings');
+const injected2 = section2.spec.inject();
+ok(typeof injected2.healDescribe === 'function', 'inject 注入 healDescribe');
+await injected2.healDescribe();
+ok(remoteCalls.describe === 1, 'heal 调了一次 describe');
+ok(remoteCalls.mutate.length === 1
+  && remoteCalls.mutate[0][0] === 'dsh-connect-godagent'
+  && JSON.stringify(remoteCalls.mutate[0][1]) === JSON.stringify([{ op: 'set', path: ['refreshMinutes'], value: 45 }])
+  && remoteCalls.mutate[0][2] === 7,
+  'heal 用原值+原 revision 写回一次（同值写 → document-updated → mirror 重拉）');
+
+console.log('== slow 分支：12s 未 ready 自动自愈一次 ==');
+const realSetTimeout = globalThis.setTimeout;
+const timers = [];
+globalThis.setTimeout = (fn, ms) => { timers.push([fn, ms]); return timers.length; };
+try {
+  hookStates = []; hookIndex = 0; pendingEffects.length = 0;
+  let healCount = 0;
+  const loadingScope = { getSnapshot: () => ({ status: 'loading' }), subscribe: () => () => {} };
+  const slowInjected = { settingsScope: loadingScope, healDescribe: async () => { healCount++; } };
+  let slowTree = section2.component({ ...slowInjected, label: 'God Agent' });
+  for (const fn of pendingEffects) fn();
+  const t12 = timers.find(([, ms]) => ms === 12000);
+  ok(!!t12, '12s 未 ready 进入 slow');
+  t12[0]();
+  await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r));
+  pendingEffects.length = 0;
+  hookIndex = 0; // 关键：同一组件的二次渲染要从 0 重新映射 hooks（hookStates 保留）
+  slowTree = section2.component({ ...slowInjected, label: 'God Agent' });
+  for (const fn of pendingEffects) fn();
+  const t12b = timers.slice().reverse().find(([, ms]) => ms === 12000);
+  ok(!!t12b, '仍不 ready 会再挂 slow 计时器');
+  t12b[0]();
+  await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r)); await new Promise((r) => setImmediate(r));
+  ok(healCount === 1, '自愈只自动执行一次（第二次给手动重试）');
+} finally {
+  globalThis.setTimeout = realSetTimeout;
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
