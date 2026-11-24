@@ -21,6 +21,7 @@ const react = {
     return [hookStates[i], set];
   },
   useEffect: (fn) => { pendingEffects.push(fn); },
+  useRef: (init) => { const i = hookIndex++; hookStates[i] ??= { current: init }; return hookStates[i]; },
   useMemo: (fn) => fn(),
   useCallback: (fn) => fn,
 };
